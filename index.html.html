@@ -1,0 +1,375 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Agent Net Calculator — Mobile v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root{
+      --bg:#0b1220;--card:#111a2b;--soft:#1a2440;--accent:#7aa2ff;--text:#e8eef8;--muted:#a9b7d9;
+      --green:#3ad29f;--red:#ff6b6b;--border:#223055;--pad:14px;--radius:16px
+    }
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1630);color:var(--text);padding-bottom:80px}
+    .container{max-width:760px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:var(--pad);box-shadow:0 8px 24px rgba(0,0,0,.3);margin-bottom:14px}
+    h1{font-size:22px;margin:6px 0 12px}
+    h2{font-size:16px;margin:0 0 10px;color:var(--muted)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input, select{width:100%;padding:14px;border-radius:12px;border:1px solid #2a3960;background:#0d1426;color:var(--text);font-size:16px}
+    input:focus, select:focus{outline:none;border-color:var(--accent)}
+    .row{display:grid;grid-template-columns:1fr;gap:12px}
+    .metric{background:var(--soft);border:1px solid #2a3960;border-radius:14px;padding:12px;text-align:center}
+    .metric .big{font-size:20px;font-weight:700}
+    .metric .label{font-size:12px;color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#08101f;border:none;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .spacer{height:8px}
+    .sticky-actions{position:fixed;left:0;right:0;bottom:0;padding:10px;background:rgba(11,18,32,.9);backdrop-filter:blur(8px);display:flex;gap:10px;z-index:10}
+    .sticky-actions .btn{flex:1}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#1e2a48;font-size:12px}
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:13px;text-align:right}
+    th:first-child,td:first-child{text-align:left}
+    th{position:sticky;top:0;background:#0f1830}
+    .del{background:#182246;border:1px solid #3a4668;color:#aab7df;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:14px}
+    .del:hover{border-color:#ff8a8a;color:#ff8a8a}
+    td.actions, th.actions{text-align:center}
+    .subtle{color:var(--muted);font-size:12px}
+    .ytd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (min-width:560px){ .ytd-grid{grid-template-columns:repeat(4,1fr)} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏡 Agent Net Calculator — Mobile v2</h1>
+    <div class="card">
+      <h2>Deal Calculator</h2>
+      <div class="row">
+        <div class="grid2">
+          <div><label>Date</label><input type="date" id="date"></div>
+          <div>
+            <label>Your Role</label>
+            <select id="role"><option>Buyer's Agent</option><option>Seller's Agent</option></select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div><label>Sale Price ($)</label><input type="number" id="salePrice" inputmode="decimal" step="1000" min="0" placeholder="0.00"></div>
+          <div><label>Listing Agreement % (e.g., 0.06)</label><input type="number" id="listingPct" inputmode="decimal" step="0.005" min="0" max="1" value="0.06"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Buyer Split % (e.g., 0.50)</label><input type="number" id="buyerSplit" inputmode="decimal" step="0.01" min="0" max="1" value="0.50"></div>
+          <div class="stack">
+            <button class="btn" id="calcBtn">🧮 Calculate</button>
+            <div class="subtle" id="msg"></div>
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="grid3">
+        <div class="metric"><div class="label">Gross Commission</div><div class="big" id="mGross">$0.00</div></div>
+        <div class="metric"><div class="label">WA Dept Fee (before split)</div><div class="big" id="mWA">$0.00</div></div>
+        <div class="metric"><div class="label">Your Split %</div><div class="big" id="mSplit">0.00%</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="grid3">
+        <div class="metric"><div class="label">Your Side Gross</div><div class="big" id="mSide">$0.00</div></div>
+        <div class="metric"><div class="label">Brokerage Split</div><div class="big" id="mBroker">$0.00</div></div>
+        <div class="metric"><div class="label">Fixed Fees</div><div class="big" id="mFees">$0.00</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="metric"><div class="label">Net Take-Home</div><div class="big" id="mNet">$0.00</div></div>
+      <div class="spacer"></div>
+      <h2>Tax Preview (this deal)</h2>
+      <div class="grid2">
+        <div class="metric"><div class="label">WA B&O Set-Aside</div><div class="big" id="mBO">$0.00</div></div>
+        <div class="metric"><div class="label">SE Tax — Social Security</div><div class="big" id="mSS">$0.00</div></div>
+        <div class="metric"><div class="label">SE Tax — Medicare</div><div class="big" id="mMed">$0.00</div></div>
+        <div class="metric"><div class="label">SE Tax — Addl Medicare</div><div class="big" id="mAddl">$0.00</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="metric"><div class="label">Estimated Federal Set-Aside</div><div class="big" id="mFed">$0.00</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="row">
+        <div class="grid2">
+          <div><label>WA Dept Fee Rate</label><input type="number" id="waDept" step="0.0005" value="0.018"></div>
+          <div><label>Brokerage Split %</label><input type="number" id="brokerage" step="0.01" value="0.30" min="0" max="1"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Admin Fee ($)</label><input type="number" id="admin" step="1" value="469"></div>
+          <div><label>E&O Fee ($)</label><input type="number" id="eo" step="1" value="45"></div>
+        </div>
+        <div class="grid2">
+          <div><label>TC Fee ($)</label><input type="number" id="tc" step="1" value="300"></div>
+          <div><label>Firm Pays WA B&O?</label>
+            <select id="firmPaysBO"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div><label>WA B&O Rate</label><input type="number" id="boRate" step="0.0005" value="0.015"></div>
+          <div><label>Filing Status</label>
+            <select id="filing"><option value="MFJ" selected>Married Filing Jointly</option><option value="Single">Single</option></select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div><label>SS Wage Base</label><input type="number" id="ssBase" step="100" value="176100"></div>
+          <div><label>W‑2 Wages YTD</label><input type="number" id="w2" step="1000" value="0"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Additional Medicare Threshold (Single)</label><input type="number" id="thrSingle" step="1000" value="200000"></div>
+          <div><label>Additional Medicare Threshold (MFJ)</label><input type="number" id="thrMFJ" step="1000" value="250000"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Federal Set-Aside %</label><input type="number" id="fedPct" step="0.01" value="0.22" min="0" max="1"></div>
+          <div class="stack"><button class="btn btn-ghost" id="saveSettings">💾 Save</button><div class="subtle" id="saveMsg"></div></div>
+        </div>
+        <div class="subtle">Settings & deals are saved in your browser on this device.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stack" style="gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Transactions</h2>
+          <div class="stack" style="flex-direction:row;gap:8px">
+            <button class="btn btn-ghost" id="exportCsv">Export CSV</button>
+            <button class="btn btn-ghost" id="clearAll">Clear All</button>
+          </div>
+        </div>
+        <div class="ytd-grid">
+          <div class="metric"><div class="label">YTD Net</div><div class="big" id="yNet">$0.00</div></div>
+          <div class="metric"><div class="label">YTD SE Tax</div><div class="big" id="ySE">$0.00</div></div>
+          <div class="metric"><div class="label">YTD Fed Set-Aside</div><div class="big" id="yFed">$0.00</div></div>
+          <div class="metric"><div class="label">YTD WA B&O</div><div class="big" id="yBO">$0.00</div></div>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th>Date</th><th>Role</th><th>Sale Price</th><th>Listing %</th><th>Gross</th><th>Your %</th>
+                <th>Your Side</th><th>WA Dept Fee</th><th>Brokerage</th><th>Admin</th><th>E&O</th><th>TC</th>
+                <th>Net</th><th>WA B&O</th><th>SE Earn</th><th>YTD SE</th><th>SE SS</th><th>SE Med</th><th>SE Addl</th><th>Fed Set-Aside</th><th class="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky-actions">
+    <button class="btn" id="storeBtn" disabled>📥 Store Deal</button>
+  </div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const fmt = n => (isNaN(n)? "$0.00" : n.toLocaleString(undefined,{style:'currency',currency:'USD'}));
+
+const settingKeys = ["waDept","brokerage","admin","eo","tc","firmPaysBO","boRate","filing","ssBase","w2","thrSingle","thrMFJ","fedPct"];
+const inputs = settingKeys.reduce((acc,k)=> (acc[k]=$('#'+k), acc), {});
+
+function saveSettings(){
+  const s = {};
+  settingKeys.forEach(k => s[k] = inputs[k].value);
+  localStorage.setItem('agent_settings', JSON.stringify(s));
+  $('#saveMsg').textContent = "Saved ✓";
+  setTimeout(()=>$('#saveMsg').textContent="",1500);
+}
+function loadSettings(){
+  const s = JSON.parse(localStorage.getItem('agent_settings')||"{}");
+  settingKeys.forEach(k => { if(s[k]!==undefined) inputs[k].value = s[k]; });
+}
+loadSettings();
+$('#saveSettings').addEventListener('click', saveSettings);
+
+function getSettings(){
+  const filing = inputs.filing.value;
+  return {
+    waDept: +inputs.waDept.value,
+    brokerage: +inputs.brokerage.value,
+    admin: +inputs.admin.value,
+    eo: +inputs.eo.value,
+    tc: +inputs.tc.value,
+    firmPaysBO: +inputs.firmPaysBO.value,
+    boRate: +inputs.boRate.value,
+    filing,
+    ssBase: +inputs.ssBase.value,
+    w2: +inputs.w2.value,
+    thr: filing==="MFJ" ? +inputs.thrMFJ.value : +inputs.thrSingle.value,
+    fedPct: +inputs.fedPct.value
+  };
+}
+
+function calcDeal({salePrice, listingPct, buyerSplit, role}, ytdSEPrior){
+  const s = getSettings();
+  const gross = salePrice * listingPct;
+  const waDeptFee = gross * s.waDept;
+  const grossAfterWA = gross - waDeptFee;
+  const computedSplit = role==="Buyer's Agent" ? buyerSplit : (1 - buyerSplit);
+  const yourSide = grossAfterWA * computedSplit;
+  const brokerage = yourSide * s.brokerage;
+  const fixedFees = s.admin + s.eo + s.tc;
+  const net = yourSide - brokerage - fixedFees;
+  const bo = s.firmPaysBO===1 ? 0 : gross * s.boRate;
+
+  const seEarn = net * 0.9235;
+  const ssTax = Math.min(seEarn, Math.max(0, s.ssBase - ytdSEPrior)) * 0.124;
+  const medTax = seEarn * 0.029;
+  const priorWithW2 = ytdSEPrior + s.w2;
+  const postWithW2 = ytdSEPrior + seEarn + s.w2;
+  // FIXED: clean Additional Medicare base calc (no weird assignment)
+  const addlBase = Math.max(0, postWithW2 - s.thr) - Math.max(0, priorWithW2 - s.thr);
+  const addlMed = addlBase * 0.009;
+  const fedSet = net * s.fedPct;
+
+  return {gross, waDeptFee, computedSplit, yourSide, brokerage, fixedFees, net, bo, seEarn, ssTax, medTax, addlMed, fedSet};
+}
+
+function currentDeals(){
+  return JSON.parse(localStorage.getItem('agent_deals')||"[]");
+}
+function saveDeals(arr){
+  localStorage.setItem('agent_deals', JSON.stringify(arr));
+}
+
+function refreshTable(){
+  const body = $("#tbl tbody");
+  body.innerHTML = "";
+  const deals = currentDeals();
+  let yNet=0, ySE=0, yFed=0, yBO=0, ytdSE=0;
+
+  deals.forEach((d, i) => {
+    ytdSE = d.ytdSE;
+    yNet += d.net;
+    ySE += (d.ssTax + d.medTax + d.addlMed);
+    yFed += d.fedSet;
+    yBO += d.bo;
+
+    const tr = document.createElement('tr');
+    const cells = [
+      d.date, d.role,
+      fmt(d.salePrice), (d.listingPct).toFixed(3),
+      fmt(d.gross), (d.computedSplit*100).toFixed(2)+"%",
+      fmt(d.yourSide), fmt(d.waDeptFee), fmt(d.brokerage),
+      fmt(d.admin), fmt(d.eo), fmt(d.tc),
+      fmt(d.net), fmt(d.bo), fmt(d.seEarn), fmt(d.ytdSE),
+      fmt(d.ssTax), fmt(d.medTax), fmt(d.addlMed), fmt(d.fedSet)
+    ];
+    cells.forEach(c=>{ const td=document.createElement('td'); td.textContent=c; tr.appendChild(td); });
+    const tdAct = document.createElement('td'); tdAct.className="actions";
+    const btn = document.createElement('button'); btn.className="del"; btn.textContent="Delete"; btn.dataset.idx=i;
+    tdAct.appendChild(btn); tr.appendChild(tdAct); body.appendChild(tr);
+  });
+
+  $('#yNet').textContent = fmt(yNet);
+  $('#ySE').textContent = fmt(ySE);
+  $('#yFed').textContent = fmt(yFed);
+  $('#yBO').textContent = fmt(yBO);
+}
+
+function toCsv(){
+  const deals = currentDeals();
+  const header = ["date","role","salePrice","listingPct","gross","computedSplit","yourSide","waDeptFee","brokerage","admin","eo","tc","net","waBO","seEarnings","ytdSE","seSS","seMedicare","seAddlMed","federalSetAside"];
+  const rows = deals.map(d => [d.date,d.role,d.salePrice,d.listingPct,d.gross,d.computedSplit,d.yourSide,d.waDeptFee,d.brokerage,d.admin,d.eo,d.tc,d.net,d.bo,d.seEarn,d.ytdSE,d.ssTax,d.medTax,d.addlMed,d.fedSet]);
+  const all = [header].concat(rows).map(r=>r.join(",")).join("\\n");
+  const blob = new Blob([all],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download="transactions.csv"; a.click();
+}
+
+$('#exportCsv').addEventListener('click', toCsv);
+$('#clearAll').addEventListener('click', ()=>{
+  if(confirm("Clear all saved deals?")){ saveDeals([]); refreshTable(); }
+});
+document.querySelector("#tbl tbody").addEventListener('click', (e)=>{
+  const btn = e.target.closest('.del'); if(!btn) return;
+  const idx = +btn.dataset.idx;
+  const deals = currentDeals();
+  const row = deals[idx];
+  if(confirm(`Delete ${row.date} — ${row.role} deal for $${(row.salePrice||0).toLocaleString()}?`)){
+    deals.splice(idx,1); saveDeals(deals); refreshTable();
+  }
+});
+
+let lastCalc = null;
+$('#calcBtn').addEventListener('click', ()=>{
+  const date = $('#date').value || new Date().toISOString().slice(0,10);
+  const role = $('#role').value;
+  const salePrice = +$('#salePrice').value || 0;
+  const listingPct = +$('#listingPct').value || 0;
+  const buyerSplit = +$('#buyerSplit').value || 0;
+
+  const deals = currentDeals();
+  const ytdSEPrior = deals.reduce((s,d)=> s + (d.seEarn||0), 0);
+
+  const c = calcDeal({salePrice, listingPct, buyerSplit, role}, ytdSEPrior);
+  lastCalc = {date, role, salePrice, listingPct, buyerSplit, ...c};
+
+  $('#mGross').textContent = fmt(c.gross);
+  $('#mWA').textContent = fmt(c.waDeptFee);
+  $('#mSplit').textContent = (c.computedSplit*100).toFixed(2) + "%";
+  $('#mSide').textContent = fmt(c.yourSide);
+  $('#mBroker').textContent = fmt(c.brokerage);
+  $('#mFees').textContent = fmt((getSettings().admin + getSettings().tc + getSettings().eo));
+  $('#mNet').textContent = fmt(c.net);
+  $('#mBO').textContent = fmt(c.bo);
+  $('#mSS').textContent = fmt(c.ssTax);
+  $('#mMed').textContent = fmt(c.medTax);
+  $('#mAddl').textContent = fmt(c.addlMed);
+  $('#mFed').textContent = fmt(c.fedSet);
+  $('#storeBtn').disabled = false;
+  $('#msg').textContent = "Calculated ✓ Scroll down to review, or tap Store to save.";
+});
+
+$('#storeBtn').addEventListener('click', ()=>{
+  if(!lastCalc){ return; }
+  const s = getSettings();
+  const deals = currentDeals();
+  const ytdSEPrior = deals.reduce((sum,d)=> sum + (d.seEarn||0), 0);
+
+  // recompute with prior to freeze per-row taxes
+  const c = calcDeal({salePrice:lastCalc.salePrice, listingPct:lastCalc.listingPct, buyerSplit:lastCalc.buyerSplit, role:lastCalc.role}, ytdSEPrior);
+  const row = {
+    date: lastCalc.date,
+    role: lastCalc.role,
+    salePrice: lastCalc.salePrice,
+    listingPct: lastCalc.listingPct,
+    gross: c.gross,
+    computedSplit: c.computedSplit,
+    yourSide: c.yourSide,
+    waDeptFee: c.waDeptFee,
+    brokerage: c.brokerage,
+    admin: s.admin, eo: s.eo, tc: s.tc,
+    net: c.net,
+    bo: c.bo,
+    seEarn: c.seEarn,
+    ytdSE: ytdSEPrior + c.seEarn,
+    ssTax: c.ssTax,
+    medTax: c.medTax,
+    addlMed: c.addlMed,
+    fedSet: c.fedSet
+  };
+  deals.push(row);
+  saveDeals(deals);
+  refreshTable();
+  $('#msg').textContent = "Stored ✓";
+  $('#storeBtn').disabled = true;
+  window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+});
+
+refreshTable();
+</script>
+</body>
+</html>
